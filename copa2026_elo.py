@@ -1,6 +1,8 @@
 import streamlit as st
 import plotly.graph_objects as go
 import pandas as pd
+import json
+from pathlib import Path
 
 st.set_page_config(
     page_title="Copa 2026 — ELO",
@@ -51,9 +53,9 @@ def flag(team: str) -> str:
 class Node:
     def __init__(self, label: str, left=None, right=None, team: str | None = None):
         self.label = label
-        self.left = left
+        self.left  = left
         self.right = right
-        self.team = team
+        self.team  = team
 
     @property
     def is_team(self) -> bool:
@@ -68,61 +70,34 @@ class Node:
 def T(name: str) -> Node:
     return Node(name, team=name)
 
-
 def M(label: str, a: str, b: str) -> Node:
     return Node(label, left=T(a), right=T(b))
 
 
-# Chaveamento oficial (Globo Esporte / FIFA, 28 jun 2026)
-#
-# LADO ESQUERDO → Semifinal 1:
-#   O1: Alemanha/Paraguai × França/Suécia
-#   O2: África do Sul/Canadá × Holanda/Marrocos
-#   Q1: O1 × O2
-#   O3: Portugal/Croácia × Espanha/Áustria
-#   O4: EUA/Bósnia × Bélgica/Senegal
-#   Q2: O3 × O4
-#   S1: Q1 × Q2
-#
-# LADO DIREITO → Semifinal 2:
-#   O5: Brasil/Japão × Costa do Marfim/Noruega
-#   O6: México/Equador × Inglaterra/Congo DR
-#   Q3: O5 × O6
-#   O7: Argentina/Cabo Verde × Austrália/Egito
-#   O8: Suíça/Argélia × Colômbia/Gana
-#   Q4: O7 × O8
-#   S2: Q3 × Q4
-#
-# FINAL: S1 × S2  →  França só encontra Brasil na final
-
 r32: dict[str, Node] = {
-    # Lado esquerdo
-    "MA": M("Alemanha × Paraguai (29/jun)",       "Alemanha",        "Paraguai"),
-    "MB": M("França × Suécia (30/jun)",           "França",          "Suécia"),
-    "MC": M("África do Sul × Canadá (28/jun)",    "África do Sul",   "Canadá"),
-    "MD": M("Holanda × Marrocos (29/jun)",        "Holanda",         "Marrocos"),
-    "ME": M("Portugal × Croácia (2/jul)",         "Portugal",        "Croácia"),
-    "MF": M("Espanha × Áustria (2/jul)",          "Espanha",         "Áustria"),
-    "MG": M("EUA × Bósnia (1/jul)",               "EUA",             "Bósnia"),
-    "MH": M("Bélgica × Senegal (1/jul)",          "Bélgica",         "Senegal"),
-    # Lado direito
-    "MI": M("Brasil × Japão (29/jun)",            "Brasil",          "Japão"),
-    "MJ": M("Costa do Marfim × Noruega (30/jun)", "Costa do Marfim", "Noruega"),
-    "MK": M("México × Equador (30/jun)",          "México",          "Equador"),
-    "ML": M("Inglaterra × Congo DR (1/jul)",      "Inglaterra",      "Congo DR"),
-    "MM": M("Argentina × Cabo Verde (3/jul)",     "Argentina",       "Cabo Verde"),
-    "MN": M("Austrália × Egito (3/jul)",          "Austrália",       "Egito"),
-    "MO": M("Suíça × Argélia (3/jul)",            "Suíça",           "Argélia"),
-    "MP": M("Colômbia × Gana (3/jul)",            "Colômbia",        "Gana"),
+    "MA": M("Alemanha × Paraguai (29/jun)",        "Alemanha",        "Paraguai"),
+    "MB": M("França × Suécia (30/jun)",            "França",          "Suécia"),
+    "MC": M("África do Sul × Canadá (28/jun)",     "África do Sul",   "Canadá"),
+    "MD": M("Holanda × Marrocos (29/jun)",         "Holanda",         "Marrocos"),
+    "ME": M("Portugal × Croácia (2/jul)",          "Portugal",        "Croácia"),
+    "MF": M("Espanha × Áustria (2/jul)",           "Espanha",         "Áustria"),
+    "MG": M("EUA × Bósnia (1/jul)",                "EUA",             "Bósnia"),
+    "MH": M("Bélgica × Senegal (1/jul)",           "Bélgica",         "Senegal"),
+    "MI": M("Brasil × Japão (29/jun)",             "Brasil",          "Japão"),
+    "MJ": M("Costa do Marfim × Noruega (30/jun)",  "Costa do Marfim", "Noruega"),
+    "MK": M("México × Equador (30/jun)",           "México",          "Equador"),
+    "ML": M("Inglaterra × Congo DR (1/jul)",       "Inglaterra",      "Congo DR"),
+    "MM": M("Argentina × Cabo Verde (3/jul)",      "Argentina",       "Cabo Verde"),
+    "MN": M("Austrália × Egito (3/jul)",           "Austrália",       "Egito"),
+    "MO": M("Suíça × Argélia (3/jul)",             "Suíça",           "Argélia"),
+    "MP": M("Colômbia × Gana (3/jul)",             "Colômbia",        "Gana"),
 }
 
 r16: dict[str, Node] = {
-    # Lado esquerdo → Semifinal 1
     "O1": Node("Oitavas 1: venc(Alem/Par) × venc(Fra/Sue) — 4/jul",   r32["MA"], r32["MB"]),
     "O2": Node("Oitavas 2: venc(AfSul/Can) × venc(Hol/Mar) — 4/jul",  r32["MC"], r32["MD"]),
     "O3": Node("Oitavas 3: venc(Por/Cro) × venc(Esp/Aut) — 6/jul",    r32["ME"], r32["MF"]),
     "O4": Node("Oitavas 4: venc(EUA/Bos) × venc(Bel/Sen) — 6/jul",    r32["MG"], r32["MH"]),
-    # Lado direito → Semifinal 2
     "O5": Node("Oitavas 5: venc(Bra/Jap) × venc(Mar/Nor) — 5/jul",    r32["MI"], r32["MJ"]),
     "O6": Node("Oitavas 6: venc(Mex/Equ) × venc(Ing/Con) — 5/jul",    r32["MK"], r32["ML"]),
     "O7": Node("Oitavas 7: venc(Arg/Cab) × venc(Aus/Egi) — 7/jul",    r32["MM"], r32["MN"]),
@@ -144,50 +119,66 @@ sf: dict[str, Node] = {
 final = Node("Final 🏆 — 19/jul", sf["S1"], sf["S2"])
 
 # ─────────────────────────────────────────────────────────────────
-# PROBABILITY ENGINE
+# RESULTS PERSISTENCE
 # ─────────────────────────────────────────────────────────────────
-def win_prob(elo_a: float, elo_b: float) -> float:
-    return 1.0 / (1.0 + 10.0 ** ((elo_b - elo_a) / 400.0))
+RESULTS_FILE = Path(__file__).parent / "results.json"
 
 
-@st.cache_data(show_spinner=False)
-def node_win_probs(label: str, _node: Node) -> dict[str, float]:
-    """P(team wins this node) for every team in the subtree."""
-    if _node.is_team:
-        return {_node.team: 1.0}
-    lp = node_win_probs(_node.left.label,  _node.left)
-    rp = node_win_probs(_node.right.label, _node.right)
-    result: dict[str, float] = {}
-    for ta, pa in lp.items():
-        result[ta] = sum(pa * pb * win_prob(ELO[ta], ELO[tb]) for tb, pb in rp.items())
-    for tb, pb in rp.items():
-        result[tb] = sum(pb * pa * win_prob(ELO[tb], ELO[ta]) for ta, pa in lp.items())
-    return result
+def load_results() -> dict[str, str]:
+    if RESULTS_FILE.exists():
+        try:
+            return json.loads(RESULTS_FILE.read_text())
+        except Exception:
+            return {}
+    return {}
+
+
+def save_results(r: dict[str, str]) -> None:
+    RESULTS_FILE.write_text(json.dumps(r, ensure_ascii=False, indent=2))
 
 
 # ─────────────────────────────────────────────────────────────────
-# VISUAL LAYOUT  (visual slot order for the bracket figure)
+# KEY ↔ NODE MAPPING  (chave curta usada no results.json)
 # ─────────────────────────────────────────────────────────────────
-# R32 rows: cada par consecutivo alimenta a mesma oitava
-# Linhas 0-7  = lado esquerdo → S1 (França, Alemanha, Espanha, Portugal…)
-# Linhas 8-15 = lado direito  → S2 (Brasil, Argentina, México, Inglaterra…)
+KEY_TO_NODE: dict[str, Node] = {
+    "MA": r32["MA"], "MB": r32["MB"], "MC": r32["MC"], "MD": r32["MD"],
+    "ME": r32["ME"], "MF": r32["MF"], "MG": r32["MG"], "MH": r32["MH"],
+    "MI": r32["MI"], "MJ": r32["MJ"], "MK": r32["MK"], "ML": r32["ML"],
+    "MM": r32["MM"], "MN": r32["MN"], "MO": r32["MO"], "MP": r32["MP"],
+    "O1": r16["O1"], "O2": r16["O2"], "O3": r16["O3"], "O4": r16["O4"],
+    "O5": r16["O5"], "O6": r16["O6"], "O7": r16["O7"], "O8": r16["O8"],
+    "Q1": qf["Q1"],  "Q2": qf["Q2"],  "Q3": qf["Q3"],  "Q4": qf["Q4"],
+    "S1": sf["S1"],  "S2": sf["S2"],
+    "Final": final,
+}
+NODE_TO_KEY: dict[str, str] = {n.label: k for k, n in KEY_TO_NODE.items()}
+
+
+def resolved_winner(node: Node, results: dict[str, str]) -> str | None:
+    """Vencedor confirmado de um nó (resultado registrado ou folha da árvore)."""
+    key = NODE_TO_KEY.get(node.label)
+    if key and key in results:
+        return results[key]
+    if node.is_team:
+        return node.team
+    return None
+
+
+# ─────────────────────────────────────────────────────────────────
+# VISUAL LAYOUT
+# ─────────────────────────────────────────────────────────────────
 ROW_ORDER: list[Node] = [
-    r32["MA"], r32["MB"],   # → O1  (Alemanha/Paraguai × França/Suécia)
-    r32["MC"], r32["MD"],   # → O2  (África do Sul/Canadá × Holanda/Marrocos)
-    r32["ME"], r32["MF"],   # → O3  (Portugal/Croácia × Espanha/Áustria)
-    r32["MG"], r32["MH"],   # → O4  (EUA/Bósnia × Bélgica/Senegal)
-    r32["MI"], r32["MJ"],   # → O5  (Brasil/Japão × Marfim/Noruega)
-    r32["MK"], r32["ML"],   # → O6  (México/Equador × Inglaterra/Congo)
-    r32["MM"], r32["MN"],   # → O7  (Argentina/Cabo Verde × Austrália/Egito)
-    r32["MO"], r32["MP"],   # → O8  (Suíça/Argélia × Colômbia/Gana)
+    r32["MA"], r32["MB"], r32["MC"], r32["MD"],
+    r32["ME"], r32["MF"], r32["MG"], r32["MH"],
+    r32["MI"], r32["MJ"], r32["MK"], r32["ML"],
+    r32["MM"], r32["MN"], r32["MO"], r32["MP"],
 ]
 
 R16_ORDER = [r16["O1"], r16["O2"], r16["O3"], r16["O4"],
              r16["O5"], r16["O6"], r16["O7"], r16["O8"]]
-QF_ORDER  = [qf["Q1"], qf["Q2"], qf["Q3"], qf["Q4"]]
-SF_ORDER  = [sf["S1"], sf["S2"]]
+QF_ORDER  = [qf["Q1"],  qf["Q2"],  qf["Q3"],  qf["Q4"]]
+SF_ORDER  = [sf["S1"],  sf["S2"]]
 
-# (round_idx, slot_idx, node)
 VISUAL_NODES: list[tuple[int, int, Node]] = (
     [(0, i, n) for i, n in enumerate(ROW_ORDER)] +
     [(1, i, n) for i, n in enumerate(R16_ORDER)] +
@@ -197,21 +188,46 @@ VISUAL_NODES: list[tuple[int, int, Node]] = (
 )
 
 NODE_BY_LABEL: dict[str, Node] = {n.label: n for _, _, n in VISUAL_NODES}
-
-# Pre-compute all probabilities once
-ALL_PROBS: dict[str, dict[str, float]] = {
-    n.label: node_win_probs(n.label, n) for _, _, n in VISUAL_NODES
-}
-
 ELO_SORTED: list[tuple[str, float]] = sorted(ELO.items(), key=lambda x: -x[1])
+
+# ─────────────────────────────────────────────────────────────────
+# PROBABILITY ENGINE
+# ─────────────────────────────────────────────────────────────────
+def win_prob(elo_a: float, elo_b: float) -> float:
+    return 1.0 / (1.0 + 10.0 ** ((elo_b - elo_a) / 400.0))
+
+
+@st.cache_data(show_spinner=False)
+def node_win_probs(label: str, _node: Node, results: tuple) -> dict[str, float]:
+    """P(team wins this node). Se o resultado já é conhecido, retorna 1.0 pro vencedor."""
+    results_dict = dict(results)
+    key = NODE_TO_KEY.get(label)
+    if key and key in results_dict:
+        return {results_dict[key]: 1.0}
+    if _node.is_team:
+        return {_node.team: 1.0}
+    lp = node_win_probs(_node.left.label,  _node.left,  results)
+    rp = node_win_probs(_node.right.label, _node.right, results)
+    result: dict[str, float] = {}
+    for ta, pa in lp.items():
+        result[ta] = sum(pa * pb * win_prob(ELO[ta], ELO[tb]) for tb, pb in rp.items())
+    for tb, pb in rp.items():
+        result[tb] = sum(pb * pa * win_prob(ELO[tb], ELO[ta]) for ta, pa in lp.items())
+    return result
+
+
+@st.cache_data(show_spinner=False)
+def compute_all_probs(results: tuple) -> dict[str, dict[str, float]]:
+    return {n.label: node_win_probs(n.label, n, results) for _, _, n in VISUAL_NODES}
+
 
 # ─────────────────────────────────────────────────────────────────
 # BRACKET FIGURE BUILDER
 # ─────────────────────────────────────────────────────────────────
-X_GAP   = 3.0    # horizontal space per round
-BOX_W   = 2.7    # box width
-BOX_H   = 0.82   # box height
-N_ROWS  = 16     # total R32 rows
+X_GAP   = 3.0
+BOX_W   = 2.7
+BOX_H   = 0.82
+N_ROWS  = 16
 
 ROUND_LABELS = ["16-avos", "Oitavas", "Quartas", "Semis", "Final 🏆"]
 DARK_BG = "rgba(14,17,30,1)"
@@ -220,66 +236,72 @@ DARK_BG = "rgba(14,17,30,1)"
 def _cx(rnd: int) -> float:
     return rnd * X_GAP
 
-
 def _cy(rnd: int, slot: int) -> float:
     step = 2 ** rnd
     return slot * step + (step - 1) / 2.0
 
-
 def _elo_color(prob: float) -> str:
-    """Red → amber → green based on favourite's win probability."""
     r = int(220 * (1 - prob))
     g = int(180 * prob + 40)
     return f"rgba({r},{g},55,0.92)"
 
 
 @st.cache_data(show_spinner=False)
-def build_bracket(selected_label: str | None = None) -> go.Figure:
+def build_bracket(selected_label: str | None, results: tuple) -> go.Figure:
+    all_probs = compute_all_probs(results)
+    results_dict = dict(results)
+
     shapes: list[dict] = []
     annotations: list[dict] = []
-    click_x, click_y, click_labels, click_ptidx = [], [], [], []
+    click_x, click_y, click_labels = [], [], []
     line_x: list = []
     line_y: list = []
 
     for rnd, slot, node in VISUAL_NODES:
         cx = _cx(rnd)
         cy = _cy(rnd, slot)
-        probs = ALL_PROBS[node.label]
-        top  = max(probs, key=probs.__getitem__)
-        topp = probs[top]
+        probs  = all_probs[node.label]
         is_sel = node.label == selected_label
+        nkey   = NODE_TO_KEY.get(node.label)
+        winner = results_dict.get(nkey) if nkey else None
 
-        # ── box ──────────────────────────────────────
+        if winner:
+            fill   = "rgba(40,40,60,0.95)"
+            border = "rgba(100,200,100,0.8)"
+            bw     = 1.8
+        else:
+            top    = max(probs, key=probs.__getitem__)
+            fill   = _elo_color(probs[top])
+            border = "gold" if is_sel else "rgba(200,200,200,0.35)"
+            bw     = 2.5 if is_sel else 0.8
+
         shapes.append(dict(
             type="rect",
             x0=cx, x1=cx + BOX_W,
             y0=cy - BOX_H / 2, y1=cy + BOX_H / 2,
-            fillcolor=_elo_color(topp),
-            line=dict(color="gold" if is_sel else "rgba(200,200,200,0.35)",
-                      width=2.5 if is_sel else 0.8),
+            fillcolor=fill,
+            line=dict(color=border, width=bw),
         ))
 
-        # ── label inside box ──────────────────────────
-        teams_shown = sorted(probs.items(), key=lambda x: -x[1])[:3]
-        lines = [f"<b>{flag(t)} {t}</b> <i>{p:.0%}</i>" for t, p in teams_shown]
-        text = "<br>".join(lines)
-        font_sz = 10.5
+        if winner:
+            text = f"✓ <b>{flag(winner)} {winner}</b>"
+        else:
+            teams_shown = sorted(probs.items(), key=lambda x: -x[1])[:3]
+            lines = [f"<b>{flag(t)} {t}</b> <i>{p:.0%}</i>" for t, p in teams_shown]
+            text  = "<br>".join(lines)
 
         annotations.append(dict(
             x=cx + BOX_W / 2, y=cy,
             text=text,
             showarrow=False,
-            font=dict(size=font_sz, color="white"),
+            font=dict(size=10.5, color="white"),
             align="center",
         ))
 
-        # ── invisible click target ────────────────────
         click_x.append(cx + BOX_W / 2)
         click_y.append(cy)
         click_labels.append(node.label)
-        click_ptidx.append(len(click_ptidx))
 
-        # ── connector to parent round ─────────────────
         if rnd < 4:
             parent_cy = _cy(rnd + 1, slot // 2)
             parent_cx = _cx(rnd + 1)
@@ -289,7 +311,6 @@ def build_bracket(selected_label: str | None = None) -> go.Figure:
 
     fig = go.Figure()
 
-    # connector lines
     fig.add_trace(go.Scatter(
         x=line_x, y=line_y,
         mode="lines",
@@ -297,7 +318,6 @@ def build_bracket(selected_label: str | None = None) -> go.Figure:
         showlegend=False, hoverinfo="skip",
     ))
 
-    # invisible click targets (one scatter point per box)
     fig.add_trace(go.Scatter(
         x=click_x, y=click_y,
         mode="markers",
@@ -308,7 +328,6 @@ def build_bracket(selected_label: str | None = None) -> go.Figure:
         showlegend=False,
     ))
 
-    # round header labels
     for i, lbl in enumerate(ROUND_LABELS):
         annotations.append(dict(
             x=_cx(i) + BOX_W / 2, y=N_ROWS + 0.05,
@@ -336,16 +355,8 @@ def build_bracket(selected_label: str | None = None) -> go.Figure:
 # ─────────────────────────────────────────────────────────────────
 # PROBABILITY PANEL
 # ─────────────────────────────────────────────────────────────────
-def _side_probs(node: Node) -> dict[str, float]:
-    """P de cada time chegar ao confronto deste nó (vencer o seu lado)."""
-    if node.is_team:
-        return {node.team: 1.0}
-    return node_win_probs(node.label, node)
-
-
-def prob_panel(node: Node) -> None:
-    """Tabela com barra de progresso — clique na linha para ver a decomposição."""
-    probs = ALL_PROBS[node.label]
+def prob_panel(node: Node, all_probs: dict) -> None:
+    probs = all_probs[node.label]
     teams_sorted = sorted(probs, key=lambda t: -probs[t])
     sel_set = set(st.session_state.get("selected_teams", []))
 
@@ -377,49 +388,42 @@ def prob_panel(node: Node) -> None:
     st.caption("↑ Clique em uma linha para ver a decomposição da probabilidade")
 
 
-def team_breakdown(node: Node, team: str) -> None:
-    """
-    Explica como `team` acumula sua probabilidade neste nó.
-
-    Fórmula por adversário Y:
-        P(chegar) × P(Y chegar pelo outro lado) × P(team vence Y) = contribuição
-    """
-    left_set = set(node.left.all_teams())   # type: ignore[union-attr]
+def team_breakdown(node: Node, team: str, all_probs: dict, results_t: tuple) -> None:
+    left_set = set(node.left.all_teams())
     if team in left_set:
         my_node, opp_node = node.left, node.right
     else:
-        my_node, opp_node = node.right, node.left  # type: ignore[union-attr]
+        my_node, opp_node = node.right, node.left
 
-    my_probs  = _side_probs(my_node)
-    opp_probs = _side_probs(opp_node)
+    def side_probs(n: Node) -> dict[str, float]:
+        if n.is_team:
+            return {n.team: 1.0}
+        return node_win_probs(n.label, n, results_t)
 
-    p_reach = my_probs[team]
-    p_total = ALL_PROBS[node.label][team]
+    my_probs  = side_probs(my_node)
+    opp_probs = side_probs(opp_node)
+    p_reach   = my_probs[team]
+    p_total   = all_probs[node.label][team]
 
-    # ── métricas de cabeçalho ────────────────────────────────────
     c1, c2 = st.columns(2)
     c1.metric("P(chegar a esta fase)", f"{p_reach:.1%}")
     c2.metric("P(vencer a fase)", f"{p_total:.1%}",
-              delta=f"{(p_total/p_reach*100):.0f}% se chegar" if p_reach > 0 else "")
+              delta=f"{(p_total / p_reach * 100):.0f}% se chegar" if p_reach > 0 else "")
 
     st.caption(
         f"**{flag(team)} {team}** (ELO {ELO[team]:.0f}) — "
         f"total = P(chegar) × Σ [ P(adversário chegar) × P(vencer duelo) ]"
     )
 
-    # ── dados por adversário possível ────────────────────────────
     opps = sorted(opp_probs, key=lambda t: -opp_probs[t])
     rows = []
     for opp in opps:
         p_opp   = opp_probs[opp]
         p_win   = win_prob(ELO[team], ELO[opp])
-        p_duelo = p_reach * p_opp          # P(este duelo acontecer)
-        contrib = p_duelo * p_win          # contribuição ao total
-        rows.append(dict(
-            opp=opp, p_opp=p_opp, p_win=p_win, p_duelo=p_duelo, contrib=contrib,
-        ))
+        p_duelo = p_reach * p_opp
+        contrib = p_duelo * p_win
+        rows.append(dict(opp=opp, p_opp=p_opp, p_win=p_win, p_duelo=p_duelo, contrib=contrib))
 
-    # ── gráfico de barras empilhadas por adversário ──────────────
     opp_labels  = [f"{flag(r['opp'])} {r['opp']}" for r in rows]
     contribs    = [r["contrib"] * 100 for r in rows]
     hover_texts = [
@@ -446,7 +450,6 @@ def team_breakdown(node: Node, team: str) -> None:
         hovertemplate="%{customdata}<extra></extra>",
         customdata=hover_texts,
     ))
-    # linha do total
     fig.add_hline(
         y=p_total * 100,
         line_dash="dash", line_color="gold", line_width=2,
@@ -458,7 +461,7 @@ def team_breakdown(node: Node, team: str) -> None:
         title=dict(
             text=f"Como {flag(team)} {team} acumula {p_total:.1%}<br>"
                  f"<sup>Cada barra = contribuição de um possível adversário  "
-                 f"(cor = P({team} vence o duelo direto)</sup>",
+                 f"(cor = P({team} vence o duelo direto))</sup>",
             font_size=13,
         ),
         xaxis=dict(title="Possível adversário", tickangle=-20, tickfont=dict(size=10)),
@@ -472,7 +475,6 @@ def team_breakdown(node: Node, team: str) -> None:
     )
     st.plotly_chart(fig, key="team_breakdown_chart")
 
-    # ── tabela detalhada ─────────────────────────────────────────
     with st.expander("Ver tabela completa"):
         df_detail = pd.DataFrame([{
             "Adversário":        f"{flag(r['opp'])} {r['opp']}",
@@ -486,21 +488,24 @@ def team_breakdown(node: Node, team: str) -> None:
 
 
 # ─────────────────────────────────────────────────────────────────
+# LOAD RESULTS & PRE-COMPUTE PROBS
+# ─────────────────────────────────────────────────────────────────
+RESULTS: dict[str, str] = load_results()
+RESULTS_T: tuple        = tuple(sorted(RESULTS.items()))
+ALL_PROBS: dict[str, dict[str, float]] = compute_all_probs(RESULTS_T)
+
+# ─────────────────────────────────────────────────────────────────
 # STREAMLIT APP
 # ─────────────────────────────────────────────────────────────────
-if "sel"                 not in st.session_state:
-    st.session_state.sel                 = final.label
-if "sel_team"            not in st.session_state:
-    st.session_state.sel_team            = None
-if "selected_teams"      not in st.session_state:
-    st.session_state.selected_teams      = []
-if "_sidebar_gen"        not in st.session_state:
-    st.session_state._sidebar_gen        = 0
-if "_prev_sidebar_rows"  not in st.session_state:
-    st.session_state._prev_sidebar_rows  = []
+if "sel"                not in st.session_state: st.session_state.sel               = final.label
+if "sel_team"           not in st.session_state: st.session_state.sel_team          = None
+if "selected_teams"     not in st.session_state: st.session_state.selected_teams    = []
+if "_sidebar_gen"       not in st.session_state: st.session_state._sidebar_gen      = 0
+if "_prev_sidebar_rows" not in st.session_state: st.session_state._prev_sidebar_rows = []
 
-# ── Sidebar PRIMEIRO: atualiza selected_teams antes do conteúdo principal ──
+# ── Sidebar PRIMEIRO ──────────────────────────────────────────────
 with st.sidebar:
+    # ── Ranking ──────────────────────────────────────────────────
     st.header("Rankings FIFA (ELO)")
     st.caption("Clique nas linhas para adicionar/remover da comparação")
     sel_set = set(st.session_state.selected_teams)
@@ -526,7 +531,6 @@ with st.sidebar:
         removed = prev_rows - curr_rows
         teams   = set(st.session_state.selected_teams)
         if added and removed:
-            # clique simples substituiu a seleção visual: só toggling o item clicado
             team_clicked = ELO_SORTED[next(iter(added))][0]
             if team_clicked in teams:
                 teams.discard(team_clicked)
@@ -537,6 +541,7 @@ with st.sidebar:
             teams -= {ELO_SORTED[i][0] for i in removed}
         st.session_state.selected_teams = list(teams)
 
+    # ── Fórmula ELO ──────────────────────────────────────────────
     st.divider()
     st.markdown("#### Como é calculada a probabilidade?")
     st.markdown(
@@ -573,6 +578,60 @@ with st.sidebar:
         "pela chance de cada um também chegar."
     )
 
+    # ── Resultados ───────────────────────────────────────────────
+    st.divider()
+    st.markdown("#### Resultados dos jogos")
+
+    PHASES = [
+        ("16-avos  (28 jun – 3 jul)", [
+            "MA","MB","MC","MD","ME","MF","MG","MH",
+            "MI","MJ","MK","ML","MM","MN","MO","MP",
+        ]),
+        ("Oitavas  (4 – 7 jul)",   ["O1","O2","O3","O4","O5","O6","O7","O8"]),
+        ("Quartas  (9 – 11 jul)",  ["Q1","Q2","Q3","Q4"]),
+        ("Semifinais  (14 – 15 jul)", ["S1","S2"]),
+        ("Final  (19 jul)",        ["Final"]),
+    ]
+
+    def make_callback(k: str):
+        def _cb():
+            val = st.session_state[f"res_{k}"]
+            r = load_results()
+            if val == "—":
+                r.pop(k, None)
+            else:
+                r[k] = val
+            save_results(r)
+        return _cb
+
+    for phase_name, keys in PHASES:
+        done  = sum(1 for k in keys if k in RESULTS)
+        total = len(keys)
+        label = f"{phase_name}  ({done}/{total} ✓)" if done else phase_name
+        with st.expander(label, expanded=(done > 0 and done < total)):
+            any_ready = False
+            for key in keys:
+                node   = KEY_TO_NODE[key]
+                left_w = resolved_winner(node.left,  RESULTS)
+                right_w = resolved_winner(node.right, RESULTS)
+                if left_w is None or right_w is None:
+                    continue
+                any_ready = True
+                current  = RESULTS.get(key, "—")
+                options  = ["—", left_w, right_w]
+                idx      = options.index(current) if current in options else 0
+                st.selectbox(
+                    f"{flag(left_w)} {left_w}  ×  {flag(right_w)} {right_w}",
+                    options=options,
+                    format_func=lambda x: "Não disputado" if x == "—" else f"✓ {flag(x)} {x}",
+                    index=idx,
+                    key=f"res_{key}",
+                    on_change=make_callback(key),
+                )
+            if not any_ready:
+                st.caption("Aguardando resultados das fases anteriores")
+
+
 # ── Conteúdo principal ────────────────────────────────────────────
 st.markdown(
     "<h2 style='margin-bottom:0'>🏆 Copa do Mundo 2026 — Simulador ELO</h2>"
@@ -586,8 +645,8 @@ st.markdown(
 col_b, col_p = st.columns([3, 1], gap="small")
 
 with col_b:
-    fig_bracket = build_bracket(st.session_state.sel)
-    ev_bracket = st.plotly_chart(
+    fig_bracket = build_bracket(st.session_state.sel, RESULTS_T)
+    ev_bracket  = st.plotly_chart(
         fig_bracket,
         on_select="rerun",
         selection_mode="points",
@@ -602,37 +661,36 @@ with col_b:
                 st.rerun()
 
 with col_p:
-    sel_node   = NODE_BY_LABEL[st.session_state.sel]
-    probs_here = ALL_PROBS[sel_node.label]
+    sel_node    = NODE_BY_LABEL[st.session_state.sel]
+    probs_here  = ALL_PROBS[sel_node.label]
     phase_teams = sel_node.all_teams()
-    elo_names   = [t for t, _ in ELO_SORTED]
     active      = [t for t in st.session_state.selected_teams if t in probs_here]
 
     if active:
-        soma = sum(probs_here[t] for t in active)
+        soma    = sum(probs_here[t] for t in active)
         label_n = "1 seleção" if len(active) == 1 else f"{len(active)} seleções"
         st.metric(f"Prob. combinada — {label_n}", f"{soma:.1%}")
         st.divider()
 
     if st.button(f"Selecionar todos ({len(phase_teams)}) no ranking"):
-        st.session_state.selected_teams     = list(phase_teams)
-        st.session_state._sidebar_gen      += 1
-        st.session_state._prev_sidebar_rows = []
+        st.session_state.selected_teams      = list(phase_teams)
+        st.session_state._sidebar_gen       += 1
+        st.session_state._prev_sidebar_rows  = []
         st.rerun()
 
     st.markdown(f"**{sel_node.label}**")
     st.caption(f"{len(phase_teams)} seleções — clique numa para detalhar")
-    prob_panel(sel_node)
+    prob_panel(sel_node, ALL_PROBS)
 
-# ── Painel de decomposição (largura total, abaixo do bracket) ────
+# ── Painel de decomposição ────────────────────────────────────────
 st.divider()
 sel_node = NODE_BY_LABEL[st.session_state.sel]
 sel_team = st.session_state.get("sel_team")
 
 if sel_team and sel_team in sel_node.all_teams():
     if sel_node.left and sel_node.left.is_team:
-        ta, tb = sel_node.left.team, sel_node.right.team  # type: ignore[union-attr]
-        p = win_prob(ELO[ta], ELO[tb])
+        ta, tb = sel_node.left.team, sel_node.right.team
+        p      = win_prob(ELO[ta], ELO[tb])
         other  = tb if sel_team == ta else ta
         p_show = p  if sel_team == ta else 1 - p
         st.markdown(f"#### {flag(sel_team)} {sel_team} — confronto direto")
@@ -645,7 +703,7 @@ if sel_team and sel_team in sel_node.all_teams():
             f"#### {flag(sel_team)} {sel_team} — decomposição de "
             f"**{ALL_PROBS[sel_node.label][sel_team]:.1%}** em **{sel_node.label}**"
         )
-        team_breakdown(sel_node, sel_team)
+        team_breakdown(sel_node, sel_team, ALL_PROBS, RESULTS_T)
         st.caption(
             "Fórmula: P(total) = P(chegar) × Σᵧ [ P(Y chegar pelo outro lado) × P(vencer Y) ]  "
             "| Cor da barra = P(vencer o duelo direto contra Y)"
