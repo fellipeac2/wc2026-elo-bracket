@@ -11,6 +11,7 @@ Aplicação interativa em Streamlit para explorar probabilidades do mata-mata da
 - **Decomposição por adversário** — clique em um time no painel para ver, adversário a adversário, como cada possível duelo contribui para a probabilidade total
 - **Ranking FIFA com multi-seleção** — selecione times no menu lateral para calcular a probabilidade combinada de pelo menos um deles avançar
 - **"Selecionar todos"** — seleciona automaticamente todos os times de uma fase no ranking
+- **Registro de resultados reais** — formulário por fase na sidebar para registrar o vencedor de cada jogo; as probabilidades recalculam em tempo real considerando os resultados como certeza (P=100%), propagando o impacto por todas as fases seguintes
 
 ## Modelo ELO
 
