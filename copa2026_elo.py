@@ -194,7 +194,7 @@ ELO_SORTED: list[tuple[str, float]] = sorted(ELO.items(), key=lambda x: -x[1])
 # PROBABILITY ENGINE
 # ─────────────────────────────────────────────────────────────────
 def win_prob(elo_a: float, elo_b: float) -> float:
-    return 1.0 / (1.0 + 10.0 ** ((elo_b - elo_a) / 400.0))
+    return 1.0 / (1.0 + 10.0 ** ((elo_b - elo_a) / 600.0))
 
 
 @st.cache_data(show_spinner=False)
@@ -560,7 +560,7 @@ with st.sidebar:
                  padding:0 6px 3px;font-size:1.05em;">1</span>
     <span style="display:block;padding:3px 6px 0;">
       1&nbsp;+&nbsp;10<sup style="font-size:0.72em;line-height:1;">
-        &thinsp;(ELO<sub>B</sub>&nbsp;&minus;&nbsp;ELO<sub>A</sub>)&nbsp;/&nbsp;400
+        &thinsp;(ELO<sub>B</sub>&nbsp;&minus;&nbsp;ELO<sub>A</sub>)&nbsp;/&nbsp;600
       </sup>
     </span>
   </span>
@@ -570,8 +570,8 @@ with st.sidebar:
     )
     st.markdown(
         "- Se as duas seleções têm **ELO igual**, P = 50%  \n"
-        "- Uma diferença de **+400 pts** dá ≈ 91% de chance ao favorito  \n"
-        "- Uma diferença de **+100 pts** dá ≈ 64%  \n\n"
+        "- Uma diferença de **+100 pts** dá ≈ 60% de chance ao favorito  \n"
+        "- Uma diferença de **+600 pts** dá ≈ 91%  \n\n"
         "Para fases com múltiplos jogos (oitavas, quartas…), a probabilidade de "
         "**vencer a fase** é calculada recursivamente: cada seleção precisa primeiro "
         "chegar ao jogo e depois vencer todos os possíveis adversários ponderados "

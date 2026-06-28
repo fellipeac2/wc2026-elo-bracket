@@ -20,15 +20,15 @@ A probabilidade de vitória em um confronto direto segue a fórmula logística d
 ```
               1
 P(A vence B) = ─────────────────────────────
-               1 + 10^((ELO_B − ELO_A) / 400)
+               1 + 10^((ELO_B − ELO_A) / 600)
 ```
 
 | Diferença ELO | Prob. do favorito |
 |:---:|:---:|
 | 0 | 50% |
-| +100 | ≈ 64% |
-| +200 | ≈ 76% |
-| +400 | ≈ 91% |
+| +100 | ≈ 60% |
+| +200 | ≈ 68% |
+| +600 | ≈ 91% |
 
 Para fases com múltiplos jogos, a probabilidade é calculada **recursivamente**:
 
